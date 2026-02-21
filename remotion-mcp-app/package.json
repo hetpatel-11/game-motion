@@ -1,0 +1,42 @@
+{
+  "name": "remotion-mcp-app",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "MCP App for creating animated Remotion video compositions with a live interactive player. Design videos through conversation with AI.",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "mcp-apps",
+    "mcp-use",
+    "remotion",
+    "video",
+    "react",
+    "animation"
+  ],
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "NODE_OPTIONS='--max-old-space-size=8192' mcp-use build",
+    "dev": "mcp-use dev",
+    "start": "mcp-use start",
+    "deploy": "mcp-use deploy",
+    "smoke:create-video": "node scripts/smoke-create-video.mjs"
+  },
+  "dependencies": {
+    "@paper-design/shaders-react": "^0.0.71",
+    "@remotion/player": "4.0.268",
+    "@remotion/transitions": "4.0.268",
+    "mcp-use": "^1.19.2-canary.2",
+    "node-mocks-http": "^1.17.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router": "7",
+    "remotion": "4.0.268",
+    "tailwindcss": "^4.0.0",
+    "zod": "4"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "typescript": "^5.7.3"
+  }
+}
