@@ -100,8 +100,7 @@ const propSchema = z.object({
 
 export const widgetMetadata: WidgetMetadata = {
   description: "Remotion video player",
-  // @ts-ignore - Zod v4 deep type instantiation incompatibility between mcp-use's bundled zod and project zod
-  props: propSchema,
+  props: propSchema as any,
   exposeAsTool: false,
   metadata: {
     prefersBorder: true,
