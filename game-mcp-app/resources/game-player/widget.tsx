@@ -156,87 +156,81 @@ interface GameModule {
 
 function GameRenderer({ bundle, inputProps, serverUrl }: { bundle: string; inputProps: unknown; serverUrl?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const moduleRef = useRef<GameModule | null>(null);
   const prevBundleRef = useRef<string | null>(null);
   const prevPropsRef = useRef<unknown>(undefined);
+  const [gameModule, setGameModule] = useState<GameModule | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Execute bundle when it changes
+  // Execute bundle when it changes → produces a new gameModule via setState
   useEffect(() => {
     if (!bundle || bundle === prevBundleRef.current) return;
 
-    // Cleanup previous game if there was one
-    if (moduleRef.current?.cleanup && containerRef.current) {
-      try { moduleRef.current.cleanup(containerRef.current); } catch {}
+    // Cleanup previous game
+    if (gameModule?.cleanup && containerRef.current) {
+      try { gameModule.cleanup(containerRef.current); } catch {}
     }
 
     prevBundleRef.current = bundle;
     prevPropsRef.current = undefined;
     setError(null);
+    setGameModule(null);
 
-    // Inject packages — include the real MCP server URL so the game code
-    // can build correct sprite proxy URLs regardless of the widget's iframe origin.
+    // Inject packages — BASE_URL lets game code reach the sprite proxy
+    // regardless of the sandbox origin the widget runs in.
     (window as any).__GAME_PACKAGES = { "pixi.js": PIXI, gsap, BASE_URL: serverUrl ?? "" };
 
-    // Execute CJS bundle with custom require
     try {
       const require = (id: string): unknown => (window as any).__GAME_PACKAGES?.[id] ?? {};
       const mod = { exports: {} as any };
       // eslint-disable-next-line no-new-func
       new Function("require", "module", "exports", bundle)(require, mod, mod.exports);
-      const gameModule: GameModule = mod.exports;
+      const gm: GameModule = mod.exports;
 
-      if (typeof gameModule.renderGame !== "function") {
+      if (typeof gm.renderGame !== "function") {
         setError("Bundle does not export renderGame(). Make sure main.tsx exports renderGame.");
         return;
       }
-
-      moduleRef.current = gameModule;
+      setGameModule(gm); // ← triggers re-render, then the effect below calls renderGame
     } catch (err) {
       setError(`Bundle execution error: ${err instanceof Error ? err.message : String(err)}`);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bundle]);
 
-  // Call renderGame when module or inputProps change
+  // Call renderGame when gameModule becomes available OR inputProps change
   useEffect(() => {
-    const mod = moduleRef.current;
-    if (!mod || !containerRef.current || inputProps === undefined) return;
+    if (!gameModule || !containerRef.current || inputProps === undefined) return;
 
     const prevProps = prevPropsRef.current;
     prevPropsRef.current = inputProps;
 
     try {
-      const result = mod.renderGame(containerRef.current, inputProps, prevProps);
+      const result = gameModule.renderGame(containerRef.current, inputProps, prevProps);
       if (result instanceof Promise) {
         result.catch((err) => setError(`Render error: ${err instanceof Error ? err.message : String(err)}`));
       }
     } catch (err) {
       setError(`Render error: ${err instanceof Error ? err.message : String(err)}`);
     }
-  // Re-run when module loads or inputProps change (use JSON to detect value changes)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moduleRef.current, JSON.stringify(inputProps)]);
+  }, [gameModule, JSON.stringify(inputProps)]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (moduleRef.current?.cleanup && containerRef.current) {
-        try { moduleRef.current.cleanup(containerRef.current); } catch {}
+      if (gameModule?.cleanup && containerRef.current) {
+        try { gameModule.cleanup(containerRef.current); } catch {}
       }
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameModule]);
 
   if (error) return <ErrorScreen message={error} />;
 
   return (
     <div
       ref={containerRef}
-      style={{
-        display: "block",
-        lineHeight: 0,
-        borderRadius: 8,
-        overflow: "hidden",
-      }}
+      style={{ display: "block", lineHeight: 0, borderRadius: 8, overflow: "hidden" }}
     />
   );
 }
