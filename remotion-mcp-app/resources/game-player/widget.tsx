@@ -132,8 +132,30 @@ function IdleScreen({ dark }: { dark: boolean }) {
 
 // ── Game router ───────────────────────────────────────────────────────────────
 
+function unwrapState(gameState: GameState): GameState {
+  // Claude sometimes sends the full GameState wrapper as `initialState`,
+  // resulting in double-nesting: { gameType, state: { gameType, state: {...} } }
+  // Unwrap until we reach the actual inner state.
+  let current: any = gameState;
+  while (
+    current?.state &&
+    typeof current.state === "object" &&
+    !Array.isArray(current.state) &&
+    ("gameType" in current.state || "state" in current.state)
+  ) {
+    // If the inner object looks like a GameState wrapper, unwrap one level
+    if ("state" in current.state && typeof current.state.state === "object") {
+      current = { ...current, state: current.state.state, gameType: current.state.gameType ?? current.gameType };
+    } else {
+      break;
+    }
+  }
+  return current as GameState;
+}
+
 function GameRouter({ gameState }: { gameState: GameState }) {
-  const { gameType, state, title } = gameState;
+  const resolved = unwrapState(gameState);
+  const { gameType, state, title } = resolved;
 
   switch (gameType) {
     case "pokemon":

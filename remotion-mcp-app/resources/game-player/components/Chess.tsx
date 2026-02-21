@@ -103,7 +103,27 @@ function CapturedPieces({ pieces, label }: { pieces: string[]; label: string }) 
 }
 
 // ── Main Chess component ──────────────────────────────────────────────────────
-export default function Chess({ state, title }: { state: ChessState; title?: string }) {
+const INITIAL_BOARD: string[][] = [
+  ["bR","bN","bB","bQ","bK","bB","bN","bR"],
+  ["bP","bP","bP","bP","bP","bP","bP","bP"],
+  ["","","","","","","",""],["","","","","","","",""],
+  ["","","","","","","",""],["","","","","","","",""],
+  ["wP","wP","wP","wP","wP","wP","wP","wP"],
+  ["wR","wN","wB","wQ","wK","wB","wN","wR"],
+];
+
+export default function Chess({ state: rawState, title }: { state: ChessState; title?: string }) {
+  const state: ChessState = {
+    board: rawState?.board ?? INITIAL_BOARD,
+    turn: rawState?.turn ?? "white",
+    lastMove: rawState?.lastMove ?? null,
+    check: rawState?.check ?? false,
+    checkmate: rawState?.checkmate ?? false,
+    stalemate: rawState?.stalemate ?? false,
+    message: rawState?.message ?? "Your move.",
+    capturedByWhite: rawState?.capturedByWhite ?? [],
+    capturedByBlack: rawState?.capturedByBlack ?? [],
+  };
   const lastFromRC = state.lastMove ? algToRC(state.lastMove.from) : null;
   const lastToRC = state.lastMove ? algToRC(state.lastMove.to) : null;
 

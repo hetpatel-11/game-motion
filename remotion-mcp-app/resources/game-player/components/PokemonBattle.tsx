@@ -277,7 +277,18 @@ function ResultOverlay({ phase }: { phase: string }) {
 }
 
 // ── Main Pokemon Battle component ─────────────────────────────────────────────
-export default function PokemonBattle({ state, title }: { state: PokemonState; title?: string }) {
+export default function PokemonBattle({ state: rawState, title }: { state: PokemonState; title?: string }) {
+  // Guard against malformed state
+  const state: PokemonState = {
+    player: rawState?.player ?? { name: "???", hp: 0, maxHp: 1, level: 1, sprite: "❓", moves: [] },
+    enemy:  rawState?.enemy  ?? { name: "???", hp: 0, maxHp: 1, level: 1, sprite: "❓" },
+    message: rawState?.message ?? "…",
+    phase: rawState?.phase ?? "player_turn",
+    lastMove: rawState?.lastMove,
+    lastAttacker: rawState?.lastAttacker,
+    effectiveness: rawState?.effectiveness,
+    turn: rawState?.turn ?? 1,
+  };
   const [flashCount, setFlashCount] = useState(0);
   const [playerAttacking, setPlayerAttacking] = useState(false);
   const [enemyAttacking, setEnemyAttacking] = useState(false);

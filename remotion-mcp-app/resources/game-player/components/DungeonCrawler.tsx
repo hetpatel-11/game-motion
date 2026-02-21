@@ -205,7 +205,16 @@ function GameOverOverlay({ phase }: { phase: string }) {
 }
 
 // ── Main DungeonCrawler ───────────────────────────────────────────────────────
-export default function DungeonCrawler({ state, title }: { state: DungeonState; title?: string }) {
+export default function DungeonCrawler({ state: rawState, title }: { state: DungeonState; title?: string }) {
+  const state: DungeonState = {
+    player: rawState?.player ?? { hp: 100, maxHp: 100, level: 1, xp: 0, xpToNext: 100, gold: 0, inventory: [], attack: 10, defense: 5 },
+    enemy: rawState?.enemy ?? null,
+    room: rawState?.room ?? { name: "Unknown", description: "…", exits: [] },
+    message: rawState?.message ?? "…",
+    phase: rawState?.phase ?? "explore",
+    floor: rawState?.floor ?? 1,
+    turn: rawState?.turn ?? 1,
+  };
   const [enemyHit, setEnemyHit] = useState(false);
   const [enemyAttacking, setEnemyAttacking] = useState(false);
   const prevHp = useRef({ player: state.player.hp, enemy: state.enemy?.hp ?? 0 });
