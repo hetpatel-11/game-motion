@@ -206,14 +206,39 @@ function GameOverOverlay({ phase }: { phase: string }) {
 
 // ── Main DungeonCrawler ───────────────────────────────────────────────────────
 export default function DungeonCrawler({ state: rawState, title }: { state: DungeonState; title?: string }) {
+  const rp = rawState?.player;
+  const re = rawState?.enemy;
+  const rr = rawState?.room;
   const state: DungeonState = {
-    player: rawState?.player ?? { hp: 100, maxHp: 100, level: 1, xp: 0, xpToNext: 100, gold: 0, inventory: [], attack: 10, defense: 5 },
-    enemy: rawState?.enemy ?? null,
-    room: rawState?.room ?? { name: "Unknown", description: "…", exits: [] },
-    message: rawState?.message ?? "…",
-    phase: rawState?.phase ?? "explore",
-    floor: rawState?.floor ?? 1,
-    turn: rawState?.turn ?? 1,
+    player: {
+      hp:       typeof rp?.hp       === "number" ? rp.hp       : 100,
+      maxHp:    typeof rp?.maxHp    === "number" ? rp.maxHp    : 100,
+      level:    typeof rp?.level    === "number" ? rp.level    : 1,
+      xp:       typeof rp?.xp       === "number" ? rp.xp       : 0,
+      xpToNext: typeof rp?.xpToNext === "number" ? rp.xpToNext : 100,
+      gold:     typeof rp?.gold     === "number" ? rp.gold     : 0,
+      inventory: Array.isArray(rp?.inventory) ? rp.inventory : [],
+      attack:   typeof rp?.attack   === "number" ? rp.attack   : 10,
+      defense:  typeof rp?.defense  === "number" ? rp.defense  : 5,
+    },
+    enemy: re ? {
+      name:   typeof re.name   === "string" ? re.name   : "Enemy",
+      hp:     typeof re.hp     === "number" ? re.hp     : 30,
+      maxHp:  typeof re.maxHp  === "number" ? re.maxHp  : 30,
+      sprite: typeof re.sprite === "string" ? re.sprite : "👺",
+      attack: typeof re.attack === "number" ? re.attack : 8,
+    } : null,
+    room: {
+      name:        typeof rr?.name        === "string" ? rr.name        : "Unknown Room",
+      description: typeof rr?.description === "string" ? rr.description : "…",
+      exits:       Array.isArray(rr?.exits) ? rr.exits : [],
+      items:       Array.isArray(rr?.items) ? rr.items : [],
+      danger:      rr?.danger ?? "safe",
+    },
+    message: typeof rawState?.message === "string" ? rawState.message : "…",
+    phase:   rawState?.phase ?? "explore",
+    floor:   typeof rawState?.floor === "number" ? rawState.floor : 1,
+    turn:    typeof rawState?.turn  === "number" ? rawState.turn  : 1,
   };
   const [enemyHit, setEnemyHit] = useState(false);
   const [enemyAttacking, setEnemyAttacking] = useState(false);

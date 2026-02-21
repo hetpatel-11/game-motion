@@ -277,17 +277,28 @@ function ResultOverlay({ phase }: { phase: string }) {
 }
 
 // ── Main Pokemon Battle component ─────────────────────────────────────────────
+function safeFighter(f: any, fallbackSprite: string): PokemonFighter {
+  return {
+    name:   typeof f?.name   === "string" ? f.name   : "???",
+    hp:     typeof f?.hp     === "number" ? f.hp     : 100,
+    maxHp:  typeof f?.maxHp  === "number" ? f.maxHp  : 100,
+    level:  typeof f?.level  === "number" ? f.level  : 1,
+    sprite: typeof f?.sprite === "string" ? f.sprite : fallbackSprite,
+    moves:  Array.isArray(f?.moves) ? f.moves : ["Attack"],
+    status: f?.status ?? null,
+  };
+}
+
 export default function PokemonBattle({ state: rawState, title }: { state: PokemonState; title?: string }) {
-  // Guard against malformed state
   const state: PokemonState = {
-    player: rawState?.player ?? { name: "???", hp: 0, maxHp: 1, level: 1, sprite: "❓", moves: [] },
-    enemy:  rawState?.enemy  ?? { name: "???", hp: 0, maxHp: 1, level: 1, sprite: "❓" },
-    message: rawState?.message ?? "…",
-    phase: rawState?.phase ?? "player_turn",
-    lastMove: rawState?.lastMove,
-    lastAttacker: rawState?.lastAttacker,
-    effectiveness: rawState?.effectiveness,
-    turn: rawState?.turn ?? 1,
+    player: safeFighter(rawState?.player, "🦎"),
+    enemy:  safeFighter(rawState?.enemy,  "❓"),
+    message:      typeof rawState?.message === "string" ? rawState.message : "Battle start!",
+    phase:        rawState?.phase ?? "player_turn",
+    lastMove:     rawState?.lastMove ?? null,
+    lastAttacker: rawState?.lastAttacker ?? null,
+    effectiveness: rawState?.effectiveness ?? null,
+    turn:         typeof rawState?.turn === "number" ? rawState.turn : 1,
   };
   const [flashCount, setFlashCount] = useState(0);
   const [playerAttacking, setPlayerAttacking] = useState(false);

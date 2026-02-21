@@ -113,16 +113,19 @@ const INITIAL_BOARD: string[][] = [
 ];
 
 export default function Chess({ state: rawState, title }: { state: ChessState; title?: string }) {
+  const rawBoard = rawState?.board;
   const state: ChessState = {
-    board: rawState?.board ?? INITIAL_BOARD,
-    turn: rawState?.turn ?? "white",
-    lastMove: rawState?.lastMove ?? null,
-    check: rawState?.check ?? false,
-    checkmate: rawState?.checkmate ?? false,
-    stalemate: rawState?.stalemate ?? false,
-    message: rawState?.message ?? "Your move.",
-    capturedByWhite: rawState?.capturedByWhite ?? [],
-    capturedByBlack: rawState?.capturedByBlack ?? [],
+    board: Array.isArray(rawBoard) && rawBoard.length === 8
+      ? rawBoard.map(row => Array.isArray(row) ? row : Array(8).fill(""))
+      : INITIAL_BOARD,
+    turn:       rawState?.turn === "black" ? "black" : "white",
+    lastMove:   rawState?.lastMove ?? null,
+    check:      rawState?.check    === true,
+    checkmate:  rawState?.checkmate === true,
+    stalemate:  rawState?.stalemate === true,
+    message:    typeof rawState?.message === "string" ? rawState.message : "Your move.",
+    capturedByWhite: Array.isArray(rawState?.capturedByWhite) ? rawState.capturedByWhite : [],
+    capturedByBlack: Array.isArray(rawState?.capturedByBlack) ? rawState.capturedByBlack : [],
   };
   const lastFromRC = state.lastMove ? algToRC(state.lastMove.from) : null;
   const lastToRC = state.lastMove ? algToRC(state.lastMove.to) : null;

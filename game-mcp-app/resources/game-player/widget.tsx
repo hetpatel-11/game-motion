@@ -31,15 +31,21 @@ export const widgetMetadata: WidgetMetadata = {
 
 // ── Error boundary ────────────────────────────────────────────────────────────
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
-  state = { error: null as string | null };
-  static getDerivedStateFromError(e: Error) { return { error: e.message }; }
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null; stack: string | null }> {
+  state = { error: null as string | null, stack: null as string | null };
+  static getDerivedStateFromError(e: Error) { return { error: e.message, stack: e.stack ?? null }; }
   render() {
     if (this.state.error) {
       return (
-        <div style={{ padding: 16, color: "#f87171", fontFamily: "monospace", fontSize: 12 }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Widget error</div>
-          <div style={{ whiteSpace: "pre-wrap", opacity: 0.8 }}>{this.state.error}</div>
+        <div style={{ padding: 16, color: "#f87171", fontFamily: "monospace", fontSize: 12, background: "#0f172a", borderRadius: 10 }}>
+          <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Game render error</div>
+          <div style={{ whiteSpace: "pre-wrap", opacity: 0.9, marginBottom: 8 }}>{this.state.error}</div>
+          {this.state.stack && (
+            <details>
+              <summary style={{ cursor: "pointer", opacity: 0.5, fontSize: 11 }}>Stack trace</summary>
+              <pre style={{ fontSize: 10, opacity: 0.6, marginTop: 6, overflow: "auto", maxHeight: 200 }}>{this.state.stack}</pre>
+            </details>
+          )}
         </div>
       );
     }
@@ -179,13 +185,27 @@ function GamePlayerInner() {
   const isBusy = isPending || isStreaming;
 
   const gameState = useMemo<GameState | null>(() => {
-    const raw = (output as Record<string, unknown> | null)?.gameState;
-    if (typeof raw !== "string") return null;
-    try {
-      return JSON.parse(raw) as GameState;
-    } catch {
-      return null;
+    // Try multiple extraction paths — mcp-use may nest differently
+    const candidates: unknown[] = [
+      (output as any)?.gameState,
+      (output as any)?.props?.gameState,
+      typeof output === "string" ? output : null,
+    ];
+
+    for (const raw of candidates) {
+      if (typeof raw === "string" && raw.trim().startsWith("{")) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            return parsed as GameState;
+          }
+        } catch {}
+      }
+      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+        return raw as GameState;
+      }
     }
+    return null;
   }, [output]);
 
   if (!gameState && isBusy) return <LoadingScreen dark={dark} />;
