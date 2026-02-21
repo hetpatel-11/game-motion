@@ -22,26 +22,9 @@ export const widgetMetadata: WidgetMetadata = {
     csp: {
       // Required to execute compiled game bundles with new Function()
       scriptDirectives: ["'unsafe-eval'"],
-      // Required for PIXI.Assets.load() — sprites, fonts, CDN assets
-      imgDirectives: [
-        "https://raw.githubusercontent.com",
-        "https://assets.pokemon.com",
-        "https://unpkg.com",
-        "https://deckofcardsapi.com",
-        "https://cdn.jsdelivr.net",
-        "https://fonts.gstatic.com",
-        "data:",
-        "blob:",
-      ],
-      connectDirectives: [
-        "https://raw.githubusercontent.com",
-        "https://unpkg.com",
-        "https://pokeapi.co",
-        "https://deckofcardsapi.com",
-        "https://cdn.jsdelivr.net",
-        "https://fonts.googleapis.com",
-        "https://fonts.gstatic.com",
-      ],
+      // Required for PIXI.Assets.load() — Pokemon sprites, backgrounds, etc.
+      imgDirectives: ["https://raw.githubusercontent.com", "https://assets.pokemon.com", "data:"],
+      connectDirectives: ["https://raw.githubusercontent.com", "https://pokeapi.co"],
     },
   },
 };

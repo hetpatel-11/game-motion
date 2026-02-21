@@ -11,8 +11,12 @@ const server = new MCPServer({
   title: "AI Game Engine",
   version: "4.0.0",
   description:
-    "Claude generates pixel-perfect game UIs with Pixi.js — Pokemon FireRed, chess, dungeon crawlers, any game. " +
-    "Write game code once, update state per turn with no recompile.",
+    "IMPORTANT: When a user asks to play ANY game, you MUST: " +
+    "1) Call read_me to get full instructions. " +
+    "2) Call start_game with complete Pixi.js TypeScript code in the 'files' parameter. " +
+    "3) Call update_game_state after each player turn. " +
+    "NEVER describe a game in text — always call start_game to render it visually. " +
+    "You write all game logic as Pixi.js v8 + GSAP TypeScript. The widget renders it live in the chat window.",
   host: process.env.HOST ?? "0.0.0.0",
   baseUrl: process.env.MCP_URL ?? `http://localhost:${port}`,
 });
@@ -23,8 +27,9 @@ server.tool(
   {
     name: "read_me",
     description:
-      "CALL THIS FIRST before any game. Returns the complete guide for writing Pixi.js game compositions, " +
-      "exact Pokemon FireRed specs, chess board specs, animation patterns, and the inputProps contract.",
+      "CALL THIS FIRST — before writing any game code. Returns the complete Pixi.js v8 game engine guide: " +
+      "API reference, real sprite CDN URLs (Pokemon/Chess/Cards), GSAP animation patterns, " +
+      "game specs for 10+ games, and the renderGame() contract. Required before calling start_game.",
   },
   async () => text(RULE_GAME_ENGINE)
 );
@@ -35,12 +40,12 @@ server.tool(
   {
     name: "start_game",
     description:
-      "Compile and launch ANY game the user requests — Pokemon, chess, blackjack, snake, 2048, wordle, " +
-      "battleship, minesweeper, connect four, tic-tac-toe, dungeon crawler, or ANYTHING else. " +
-      "You write the complete Pixi.js game UI as TypeScript — pixel-perfect, animated, real. " +
-      "For Pokemon: use real sprites from PokeAPI via PIXI.Assets.load(). " +
-      "REQUIRED: files must include 'main.tsx' exporting renderGame() and optionally cleanup(). " +
-      "After this call, use update_game_state to advance the game — no recompile needed.",
+      "CALL THIS to launch any game visually. You write the FULL game as Pixi.js v8 TypeScript and pass it in 'files'. " +
+      "Supported: Pokemon, chess, blackjack, snake, 2048, wordle, battleship, minesweeper, connect four, " +
+      "tic-tac-toe, dungeon crawler, space invaders, poker, RPG, trivia, or ANY game the user wants. " +
+      "files MUST include 'main.tsx' exporting renderGame(container, props, prevProps?) and cleanup(container). " +
+      "Use real sprites: PokeAPI for Pokemon, Lichess SVGs for chess, deckofcardsapi for cards. " +
+      "After compile succeeds the widget renders live — then use update_game_state for each turn.",
     schema: z.object({
       title: z.string().describe("Display title for the game, e.g. 'Pokemon FireRed Battle'"),
       files: z
@@ -88,10 +93,13 @@ server.tool(
     }
 
     // Compile
+    console.log(`[start_game] Compiling "${title}" — files: ${Object.keys(files).join(', ')}`);
     const compiled = await compileGameBundle(files);
     if (compiled.error) {
+      console.error(`[start_game] Compilation FAILED for "${title}":\n${compiled.error}`);
       return gameError(`Compilation failed:\n${compiled.error}`);
     }
+    console.log(`[start_game] Compiled OK — bundle ${Math.round((compiled.bundle as string).length / 1024)}KB`);
 
     const game: SessionGame = {
       bundle: compiled.bundle as string,
