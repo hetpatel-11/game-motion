@@ -1,35 +1,25 @@
-export const RULE_INDEX = `# Remotion MCP — Project-Based Video Creation
+export const RULE_INDEX = `# AI Game Engine — MCP Tools
 
-Create videos using multi-file React/Remotion projects.
+Play any game against Claude directly in chat.
 
-## Available Rules
+## Tools
 
-Call these tools to learn specific Remotion topics:
-
-- **rule_react_code** — Project file structure, imports, composition exports, props
-- **rule_remotion_animations** — useCurrentFrame, frame-driven animations
-- **rule_remotion_timing** — interpolate, spring, Easing, spring configs
-- **rule_remotion_sequencing** — Sequence, durationInFrames, scene management
-- **rule_remotion_transitions** — TransitionSeries, fade, slide, wipe, flip
-- **rule_remotion_text_animations** — Typewriter effect, word highlighting
-- **rule_remotion_trimming** — Trim start/end of animations with Sequence
+- **read_me** — Call first. Returns game state format for all game types.
+- **list_games** — List available game types and example prompts.
+- **start_game** — Start a new game session with initial state.
+- **update_game_state** — Update the game after every turn.
 
 ## Quick Start
 
-1. Call **rule_react_code** for the project format reference and exact tool call shape
-2. Build your project as a **files** map: { "/src/Video.tsx": "source code..." }
-3. Call **create_video** with files (and optionally entryFile, title, fps, etc.)
-4. For edits, call **create_video** again with only the changed files — previous files are preserved automatically
+1. Call **read_me** to get the game state format.
+2. Call **start_game** with gameType and initialState JSON.
+3. After every player action, call **update_game_state** with the full updated state.
+4. For two-step turns (player move + CPU counter), call **update_game_state** twice.
 
-## Important Rules
+## Supported game types
 
-1. Use standard module imports (remotion and installed @remotion/* packages are supported)
-2. Entry module must export a default React component
-3. You may export calculateMetadata() to derive duration/fps/dimensions from props
-4. Keep video-level fallback metadata in tool params (width, height, fps, durationInFrames)
-5. Every Sequence must include durationInFrames to avoid scene stacking
-6. Do not use CSS animations/transitions for timing; use frame-driven Remotion APIs
-7. Default quality bar unless user asks otherwise: multi-scene structure, animated transitions, clear typography hierarchy, and purposeful motion (not static slides)
-8. For edit requests, only send changed files — unchanged files are kept from the previous call
-9. For edit requests, patch the existing project and keep unrelated scenes/styles unless user asks for a full redesign
+- **pokemon** — Pokemon-style turn-based battle with HP bars and move animations
+- **chess** — Full chess game on an 8×8 animated board
+- **dungeon** — Dungeon crawler RPG with exploration, combat, and loot
+- **generic** — Any other game (tic-tac-toe, card games, trivia, etc.)
 `;
