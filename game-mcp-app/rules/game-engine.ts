@@ -188,59 +188,106 @@ const sprite = new PIXI.Sprite(tex);
 const [t1, t2, t3] = await Promise.all([url1, url2, url3].map(u => PIXI.Assets.load(u)));
 \`\`\`
 
-### Game-specific asset CDNs
+### RULE: Always use the sprite proxy — real sprites first, always
 
-**Pokemon sprites (96×96 pixel art):**
-\`\`\`
-Front: https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{id}.png
-Back:  https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/{id}.png
-Shiny: https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/{id}.png
-\`\`\`
-Name→ID: bulbasaur=1 ivysaur=2 venusaur=3 charmander=4 charmeleon=5 charizard=6 squirtle=7 wartortle=8 blastoise=9 pikachu=25 raichu=26 gengar=94 mewtwo=150 mew=151 eevee=133 snorlax=143 magikarp=129 gyarados=130 dragonite=149 arcanine=59 alakazam=65 machamp=68 golem=76 lapras=131 vaporeon=134 jolteon=135 flareon=136 articuno=144 zapdos=145 moltres=146
+The MCP server has a **built-in sprite proxy** that fetches assets server-side and serves them at the same origin as the widget, bypassing all CORS/CSP issues. **Always use proxy URLs.** Never use raw external CDN URLs directly in PIXI.Assets.load().
 
+Get the base URL dynamically:
 \`\`\`typescript
-const POKEMON_IDS: Record<string, number> = { bulbasaur:1,ivysaur:2,venusaur:3,charmander:4,charmeleon:5,charizard:6,squirtle:7,wartortle:8,blastoise:9,caterpie:10,metapod:11,butterfree:12,pidgey:16,rattata:19,pikachu:25,raichu:26,sandshrew:27,sandslash:28,clefairy:35,vulpix:37,jigglypuff:39,meowth:52,psyduck:54,mankey:56,growlithe:58,arcanine:59,alakazam:65,machamp:68,geodude:74,golem:76,slowpoke:79,gastly:92,haunter:93,gengar:94,onix:95,drowzee:96,cubone:104,hitmonlee:106,hitmonchan:107,magnemite:81,exeggcute:102,kangaskhan:115,horsea:116,goldeen:118,staryu:120,starmie:121,scyther:123,jynx:124,electabuzz:125,magmar:126,pinsir:127,tauros:128,magikarp:129,gyarados:130,lapras:131,ditto:132,eevee:133,vaporeon:134,jolteon:135,flareon:136,snorlax:143,articuno:144,zapdos:145,moltres:146,dratini:147,dragonair:148,dragonite:149,mewtwo:150,mew:151 };
-function pokeId(name: string) { return POKEMON_IDS[name.toLowerCase().replace(/[^a-z]/g,'')] ?? 1; }
-function pokeFront(name: string) { return \`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/\${pokeId(name)}.png\`; }
-function pokeBack(name: string)  { return \`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/\${pokeId(name)}.png\`; }
+const BASE = window.location.origin;
 \`\`\`
 
-**Chess pieces (Lichess cburnett SVG set):**
-\`\`\`
-https://lichess1.org/assets/piece/cburnett/{color}{Piece}.svg
-color = w or b   Piece = K Q R B N P
-Examples: wK.svg  bQ.svg  wP.svg
-\`\`\`
+---
 
-**Playing cards (Blackjack, Poker, Solitaire):**
-\`\`\`
-https://deckofcardsapi.com/static/img/{VALUE}{SUIT}.png
-VALUES: A 2 3 4 5 6 7 8 9 0(=10) J Q K
-SUITS:  S H D C
-Examples: AS.png  KH.png  0D.png  JC.png  back.png
-\`\`\`
-
-**Emoji as sprites** — for dice, board tokens, RPG icons, food, etc.:
+**POKEMON — Real PokeAPI pixel sprites (96×96, upscale 2.5×):**
 \`\`\`typescript
-const die = new PIXI.Text({ text: '🎲', style: new PIXI.TextStyle({ fontSize: 52 }) });
-\`\`\`
-
-**Google Fonts** — inject authentic game typography:
-\`\`\`typescript
-async function loadFont(family: string, url: string) {
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = url;
-  document.head.appendChild(link);
-  await new Promise<void>(r => { link.onload = () => r(); setTimeout(r, 1500); });
+const BASE = window.location.origin;
+const POKEMON_IDS: Record<string, number> = {
+  bulbasaur:1,ivysaur:2,venusaur:3,charmander:4,charmeleon:5,charizard:6,
+  squirtle:7,wartortle:8,blastoise:9,caterpie:10,metapod:11,butterfree:12,
+  pidgey:16,pidgeotto:17,pidgeot:18,rattata:19,raticate:20,
+  pikachu:25,raichu:26,clefairy:35,vulpix:37,ninetales:38,jigglypuff:39,
+  meowth:52,psyduck:54,mankey:56,growlithe:58,arcanine:59,
+  abra:63,kadabra:64,alakazam:65,machop:66,machoke:67,machamp:68,
+  geodude:74,graveler:75,golem:76,ponyta:77,rapidash:78,
+  slowpoke:79,slowbro:80,magnemite:81,magneton:82,
+  gastly:92,haunter:93,gengar:94,onix:95,drowzee:96,hypno:97,
+  cubone:104,marowak:105,hitmonlee:106,hitmonchan:107,
+  koffing:109,weezing:110,chansey:113,kangaskhan:115,
+  horsea:116,seadra:117,staryu:120,starmie:121,
+  scyther:123,jynx:124,electabuzz:125,magmar:126,pinsir:127,tauros:128,
+  magikarp:129,gyarados:130,lapras:131,ditto:132,
+  eevee:133,vaporeon:134,jolteon:135,flareon:136,porygon:137,
+  snorlax:143,articuno:144,zapdos:145,moltres:146,
+  dratini:147,dragonair:148,dragonite:149,mewtwo:150,mew:151,
+};
+function pokeId(name: string): number {
+  return POKEMON_IDS[name.toLowerCase().replace(/[^a-z]/g,'')] ?? 1;
 }
-// In createScene, before drawing text:
-await loadFont('Press Start 2P', 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-await loadFont('Orbitron', 'https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
-\`\`\`
-Font choices: "Press Start 2P" (pixel/retro), "VT323" (terminal), "Orbitron" (sci-fi), "Cinzel" (fantasy RPG), "Bangers" (comic/action), "Permanent Marker" (handwritten).
+function pokeFrontUrl(name: string) { return \`\${BASE}/sprites/pokemon/front/\${pokeId(name)}.png\`; }
+function pokeBackUrl(name: string)  { return \`\${BASE}/sprites/pokemon/back/\${pokeId(name)}.png\`;  }
 
-**For any game not listed above:** use your knowledge of the game's canonical visual style and build it programmatically with PIXI.Graphics (see patterns below), or search your training data for a known public CDN hosting its assets.
+// Load and display:
+const [frontTex, backTex] = await Promise.all([
+  PIXI.Assets.load(pokeFrontUrl(enemyName)),
+  PIXI.Assets.load(pokeBackUrl(playerName)),
+]);
+frontTex.source.scaleMode = 'nearest';
+backTex.source.scaleMode = 'nearest';
+const enemySprite = new PIXI.Sprite(frontTex);
+enemySprite.anchor.set(0.5, 1); enemySprite.scale.set(2.5);
+const playerSprite = new PIXI.Sprite(backTex);
+playerSprite.anchor.set(0.5, 1); playerSprite.scale.set(3);
+\`\`\`
+
+**CHESS — Lichess cburnett SVG pieces:**
+\`\`\`typescript
+const BASE = window.location.origin;
+// piece codes: wK wQ wR wB wN wP  bK bQ bR bB bN bP
+function chessPieceUrl(piece: string) { return \`\${BASE}/sprites/chess/\${piece}.svg\`; }
+
+const PIECE_CODES = ['wK','wQ','wR','wB','wN','wP','bK','bQ','bR','bB','bN','bP'];
+const pieceTex: Record<string, PIXI.Texture> = {};
+await Promise.all(PIECE_CODES.map(async p => { pieceTex[p] = await PIXI.Assets.load(chessPieceUrl(p)); }));
+// Render: const s = new PIXI.Sprite(pieceTex['wK']); s.width=56; s.height=56;
+\`\`\`
+
+**PLAYING CARDS — deckofcardsapi (Blackjack, Poker, Solitaire):**
+\`\`\`typescript
+const BASE = window.location.origin;
+// VALUES: A 2 3 4 5 6 7 8 9 0(=10) J Q K    SUITS: S H D C
+function cardUrl(value: string, suit: string) { return \`\${BASE}/sprites/cards/\${value}\${suit}.png\`; }
+function cardBackUrl() { return \`\${BASE}/sprites/cards/back.png\`; }
+
+const tex = await PIXI.Assets.load(cardUrl('A','S'));
+const card = new PIXI.Sprite(tex); card.width=72; card.height=100;
+\`\`\`
+
+**ANY OTHER GAME — generic proxy for GitHub/known CDNs:**
+\`\`\`typescript
+const BASE = window.location.origin;
+// Allowed: raw.githubusercontent.com, lichess1.org, deckofcardsapi.com
+function proxyUrl(externalUrl: string) {
+  return \`\${BASE}/sprites/proxy?url=\${encodeURIComponent(externalUrl)}\`;
+}
+const tex = await PIXI.Assets.load(proxyUrl('https://raw.githubusercontent.com/some/repo/sprite.png'));
+\`\`\`
+
+**Emoji sprites** — only when no real sprite exists for that game:
+\`\`\`typescript
+const icon = new PIXI.Text({ text: '🎲', style: new PIXI.TextStyle({ fontSize: 52 }) });
+\`\`\`
+
+**Google Fonts:**
+\`\`\`typescript
+async function loadFont(href: string) {
+  const link = document.createElement('link'); link.rel='stylesheet'; link.href=href;
+  document.head.appendChild(link);
+  await new Promise<void>(r => { link.onload=()=>r(); setTimeout(r,1500); });
+}
+await loadFont('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+// Others: VT323, Orbitron:wght@700, Cinzel, Bangers, Permanent+Marker
+\`\`\`
 
 ---
 

@@ -182,6 +182,85 @@ ANY game you can describe — Claude builds the UI live.
 Try: "Let's play Pokemon — I pick Bulbasaur vs Charmander"`)
 );
 
+// ── Sprite proxy routes (same-origin, bypasses widget CSP/CORS) ───────────────
+
+// Allowed CDN origins — only these are proxied
+const ALLOWED_ORIGINS = [
+  "https://raw.githubusercontent.com",
+  "https://lichess1.org",
+  "https://deckofcardsapi.com",
+  "https://fonts.googleapis.com",
+  "https://fonts.gstatic.com",
+];
+
+function isAllowed(url: string): boolean {
+  try {
+    const origin = new URL(url).origin + "/";
+    return ALLOWED_ORIGINS.some((a) => url.startsWith(a));
+  } catch { return false; }
+}
+
+// Generic sprite proxy: /sprites/proxy?url=<encoded-url>
+server.get("/sprites/proxy", async (c: any) => {
+  const url = c.req.query("url");
+  if (!url || !isAllowed(url)) {
+    return c.text("Forbidden", 403);
+  }
+  try {
+    const resp = await fetch(url, { headers: { "User-Agent": "game-mcp-sprite-proxy/1.0" } });
+    if (!resp.ok) return c.text("Not found", 404);
+    const contentType = resp.headers.get("content-type") ?? "application/octet-stream";
+    const buf = await resp.arrayBuffer();
+    return c.body(buf as any, 200, {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=86400",
+      "Access-Control-Allow-Origin": "*",
+    });
+  } catch (e) {
+    return c.text("Proxy error", 502);
+  }
+});
+
+// Convenience: /sprites/pokemon/front/:id  →  PokeAPI front sprite
+server.get("/sprites/pokemon/front/:id", async (c: any) => {
+  const id = c.req.param("id");
+  const url = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+  const resp = await fetch(url);
+  if (!resp.ok) return c.text("Not found", 404);
+  const buf = await resp.arrayBuffer();
+  return c.body(buf as any, 200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400", "Access-Control-Allow-Origin": "*" });
+});
+
+// Convenience: /sprites/pokemon/back/:id
+server.get("/sprites/pokemon/back/:id", async (c: any) => {
+  const id = c.req.param("id");
+  const url = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${id}.png`;
+  const resp = await fetch(url);
+  if (!resp.ok) return c.text("Not found", 404);
+  const buf = await resp.arrayBuffer();
+  return c.body(buf as any, 200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400", "Access-Control-Allow-Origin": "*" });
+});
+
+// Convenience: /sprites/chess/:piece  →  Lichess cburnett SVG
+server.get("/sprites/chess/:piece", async (c: any) => {
+  const piece = c.req.param("piece"); // e.g. "wK" "bQ"
+  const url = `https://lichess1.org/assets/piece/cburnett/${piece}.svg`;
+  const resp = await fetch(url);
+  if (!resp.ok) return c.text("Not found", 404);
+  const buf = await resp.arrayBuffer();
+  return c.body(buf as any, 200, { "Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400", "Access-Control-Allow-Origin": "*" });
+});
+
+// Convenience: /sprites/cards/:card  →  deckofcardsapi PNG
+server.get("/sprites/cards/:card", async (c: any) => {
+  const card = c.req.param("card"); // e.g. "AS" "KH" "back"
+  const url = `https://deckofcardsapi.com/static/img/${card}.png`;
+  const resp = await fetch(url);
+  if (!resp.ok) return c.text("Not found", 404);
+  const buf = await resp.arrayBuffer();
+  return c.body(buf as any, 200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400", "Access-Control-Allow-Origin": "*" });
+});
+
 // ── Server ────────────────────────────────────────────────────────────────────
 
 server.get("/.well-known/openai-apps-challenge", (c: any) => {
