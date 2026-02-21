@@ -194,14 +194,14 @@ The MCP server has a **built-in sprite proxy** that fetches assets server-side a
 
 Get the base URL dynamically:
 \`\`\`typescript
-const BASE = window.location.origin;
+const BASE = (globalThis as any).__GAME_PACKAGES?.BASE_URL ?? '';
 \`\`\`
 
 ---
 
 **POKEMON — Real PokeAPI pixel sprites (96×96, upscale 2.5×):**
 \`\`\`typescript
-const BASE = window.location.origin;
+const BASE = (globalThis as any).__GAME_PACKAGES?.BASE_URL ?? '';
 const POKEMON_IDS: Record<string, number> = {
   bulbasaur:1,ivysaur:2,venusaur:3,charmander:4,charmeleon:5,charizard:6,
   squirtle:7,wartortle:8,blastoise:9,caterpie:10,metapod:11,butterfree:12,
@@ -242,7 +242,7 @@ playerSprite.anchor.set(0.5, 1); playerSprite.scale.set(3);
 
 **CHESS — Lichess cburnett SVG pieces:**
 \`\`\`typescript
-const BASE = window.location.origin;
+const BASE = (globalThis as any).__GAME_PACKAGES?.BASE_URL ?? '';
 // piece codes: wK wQ wR wB wN wP  bK bQ bR bB bN bP
 function chessPieceUrl(piece: string) { return \`\${BASE}/sprites/chess/\${piece}.svg\`; }
 
@@ -254,7 +254,7 @@ await Promise.all(PIECE_CODES.map(async p => { pieceTex[p] = await PIXI.Assets.l
 
 **PLAYING CARDS — deckofcardsapi (Blackjack, Poker, Solitaire):**
 \`\`\`typescript
-const BASE = window.location.origin;
+const BASE = (globalThis as any).__GAME_PACKAGES?.BASE_URL ?? '';
 // VALUES: A 2 3 4 5 6 7 8 9 0(=10) J Q K    SUITS: S H D C
 function cardUrl(value: string, suit: string) { return \`\${BASE}/sprites/cards/\${value}\${suit}.png\`; }
 function cardBackUrl() { return \`\${BASE}/sprites/cards/back.png\`; }
@@ -265,7 +265,7 @@ const card = new PIXI.Sprite(tex); card.width=72; card.height=100;
 
 **ANY OTHER GAME — generic proxy for GitHub/known CDNs:**
 \`\`\`typescript
-const BASE = window.location.origin;
+const BASE = (globalThis as any).__GAME_PACKAGES?.BASE_URL ?? '';
 // Allowed: raw.githubusercontent.com, lichess1.org, deckofcardsapi.com
 function proxyUrl(externalUrl: string) {
   return \`\${BASE}/sprites/proxy?url=\${encodeURIComponent(externalUrl)}\`;

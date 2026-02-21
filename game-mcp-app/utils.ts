@@ -123,6 +123,11 @@ export async function compileGameBundle(
 
 // ── Widget responses ──────────────────────────────────────────────────────────
 
+// The MCP server URL — passed to the widget so game code can reach the sprite proxy
+// regardless of what origin the widget iframe is running on.
+const SERVER_URL = (process.env.MCP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`)
+  .replace(/\/mcp$/, "");
+
 export function gameWidget(
   game: SessionGame,
   message?: string
@@ -131,6 +136,7 @@ export function gameWidget(
     props: {
       bundle: game.bundle,
       inputProps: JSON.stringify(game.inputProps),
+      serverUrl: SERVER_URL,
     },
     output: text(message ?? `${game.title} — running.`),
   });

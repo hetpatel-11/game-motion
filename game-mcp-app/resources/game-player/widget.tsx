@@ -9,6 +9,7 @@ import gsap from "gsap";
 const propSchema = z.object({
   bundle: z.string().optional().describe("Compiled CJS game bundle string"),
   inputProps: z.string().optional().describe("JSON-encoded game state passed to renderGame()"),
+  serverUrl: z.string().optional().describe("MCP server base URL for sprite proxy"),
 });
 
 export const widgetMetadata: WidgetMetadata = {
@@ -153,7 +154,7 @@ interface GameModule {
   cleanup?: (container: HTMLElement) => void;
 }
 
-function GameRenderer({ bundle, inputProps }: { bundle: string; inputProps: unknown }) {
+function GameRenderer({ bundle, inputProps, serverUrl }: { bundle: string; inputProps: unknown; serverUrl?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const moduleRef = useRef<GameModule | null>(null);
   const prevBundleRef = useRef<string | null>(null);
@@ -173,8 +174,9 @@ function GameRenderer({ bundle, inputProps }: { bundle: string; inputProps: unkn
     prevPropsRef.current = undefined;
     setError(null);
 
-    // Ensure packages are available
-    (window as any).__GAME_PACKAGES = { "pixi.js": PIXI, gsap };
+    // Inject packages — include the real MCP server URL so the game code
+    // can build correct sprite proxy URLs regardless of the widget's iframe origin.
+    (window as any).__GAME_PACKAGES = { "pixi.js": PIXI, gsap, BASE_URL: serverUrl ?? "" };
 
     // Execute CJS bundle with custom require
     try {
@@ -263,10 +265,19 @@ function GamePlayerInner() {
     try { return JSON.parse(inputPropsStr); } catch { return undefined; }
   }, [inputPropsStr]);
 
+  // Extract serverUrl from output
+  const serverUrl = useMemo(() => {
+    const candidates = [output, output?.props, output?.output];
+    for (const c of candidates) {
+      if (c && typeof c === "object" && typeof c.serverUrl === "string") return c.serverUrl as string;
+    }
+    return undefined;
+  }, [output]);
+
   if (!bundle && isBusy) return <LoadingScreen />;
   if (!bundle) return <IdleScreen />;
 
-  return <GameRenderer bundle={bundle} inputProps={inputProps} />;
+  return <GameRenderer bundle={bundle} inputProps={inputProps} serverUrl={serverUrl} />;
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────
