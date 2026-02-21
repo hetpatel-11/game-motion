@@ -35,8 +35,10 @@ server.tool(
   {
     name: "start_game",
     description:
-      "Compile and launch a new game. You write a complete Pixi.js game as TypeScript files, " +
-      "which are compiled server-side and sent to the browser widget for rendering. " +
+      "Compile and launch ANY game the user requests — Pokemon, chess, blackjack, snake, 2048, wordle, " +
+      "battleship, minesweeper, connect four, tic-tac-toe, dungeon crawler, or ANYTHING else. " +
+      "You write the complete Pixi.js game UI as TypeScript — pixel-perfect, animated, real. " +
+      "For Pokemon: use real sprites from PokeAPI via PIXI.Assets.load(). " +
       "REQUIRED: files must include 'main.tsx' exporting renderGame() and optionally cleanup(). " +
       "After this call, use update_game_state to advance the game — no recompile needed.",
     schema: z.object({

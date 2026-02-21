@@ -22,6 +22,9 @@ export const widgetMetadata: WidgetMetadata = {
     csp: {
       // Required to execute compiled game bundles with new Function()
       scriptDirectives: ["'unsafe-eval'"],
+      // Required for PIXI.Assets.load() — Pokemon sprites, backgrounds, etc.
+      imgDirectives: ["https://raw.githubusercontent.com", "https://assets.pokemon.com", "data:"],
+      connectDirectives: ["https://raw.githubusercontent.com", "https://pokeapi.co"],
     },
   },
 };
