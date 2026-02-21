@@ -1,51 +1,52 @@
-import React, { Component, type ReactNode, useMemo } from "react";
+import React, { Component, type ReactNode, useEffect, useRef, useState, useMemo } from "react";
 import { z } from "zod";
 import { useWidget, McpUseProvider, type WidgetMetadata } from "mcp-use/react";
-import { motion } from "framer-motion";
-import type { GameState } from "../../types";
-
-import PokemonBattle from "./components/PokemonBattle";
-import Chess from "./components/Chess";
-import DungeonCrawler from "./components/DungeonCrawler";
-import GenericGame from "./components/GenericGame";
+import * as PIXI from "pixi.js";
+import gsap from "gsap";
 
 // ── Widget schema ─────────────────────────────────────────────────────────────
 
 const propSchema = z.object({
-  gameState: z.string().optional().describe("JSON-encoded GameState object"),
+  bundle: z.string().optional().describe("Compiled CJS game bundle string"),
+  inputProps: z.string().optional().describe("JSON-encoded game state passed to renderGame()"),
 });
 
 export const widgetMetadata: WidgetMetadata = {
-  description: "Interactive AI game player — Pokemon battles, chess, dungeon crawlers, and more",
+  description: "Dynamic AI game player — Claude generates pixel-perfect Pixi.js game UIs",
   props: propSchema as any,
   exposeAsTool: false,
   metadata: {
     prefersBorder: true,
     autoResize: true,
-    widgetDescription: "Play any game against Claude directly in chat",
+    widgetDescription: "Play any game against Claude — real pixel-perfect UIs with Pixi.js animations",
     csp: {
-      scriptDirectives: [],
+      // Required to execute compiled game bundles with new Function()
+      scriptDirectives: ["'unsafe-eval'"],
     },
   },
 };
 
+// ── Global game packages (exposed to compiled bundles) ────────────────────────
+
+// Set up the package registry so compiled bundles can require pixi.js and gsap
+if (typeof window !== "undefined") {
+  (window as any).__GAME_PACKAGES = {
+    "pixi.js": PIXI,
+    gsap,
+  };
+}
+
 // ── Error boundary ────────────────────────────────────────────────────────────
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null; stack: string | null }> {
-  state = { error: null as string | null, stack: null as string | null };
-  static getDerivedStateFromError(e: Error) { return { error: e.message, stack: e.stack ?? null }; }
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  state = { error: null as string | null };
+  static getDerivedStateFromError(e: Error) { return { error: e.message }; }
   render() {
     if (this.state.error) {
       return (
         <div style={{ padding: 16, color: "#f87171", fontFamily: "monospace", fontSize: 12, background: "#0f172a", borderRadius: 10 }}>
-          <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Game render error</div>
-          <div style={{ whiteSpace: "pre-wrap", opacity: 0.9, marginBottom: 8 }}>{this.state.error}</div>
-          {this.state.stack && (
-            <details>
-              <summary style={{ cursor: "pointer", opacity: 0.5, fontSize: 11 }}>Stack trace</summary>
-              <pre style={{ fontSize: 10, opacity: 0.6, marginTop: 6, overflow: "auto", maxHeight: 200 }}>{this.state.stack}</pre>
-            </details>
-          )}
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Game render error</div>
+          <div style={{ whiteSpace: "pre-wrap" }}>{this.state.error}</div>
         </div>
       );
     }
@@ -55,172 +56,191 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: string |
 
 // ── Loading screen ────────────────────────────────────────────────────────────
 
-const LOADING_PHRASES = [
-  "Rolling initiative…",
-  "Shuffling the deck…",
-  "Loading dungeon map…",
-  "Calculating damage…",
-  "Claude is thinking…",
-  "Spawning enemies…",
-  "Setting the stage…",
-];
-
-function LoadingScreen({ dark }: { dark: boolean }) {
-  const [idx, setIdx] = React.useState(0);
-  React.useEffect(() => {
-    const t = setInterval(() => setIdx((n) => (n + 1) % LOADING_PHRASES.length), 1800);
+function LoadingScreen() {
+  const [dots, setDots] = useState(".");
+  useEffect(() => {
+    const t = setInterval(() => setDots((d) => (d.length >= 3 ? "." : d + ".")), 500);
     return () => clearInterval(t);
   }, []);
-
   return (
     <div style={{
-      minHeight: 220,
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center", gap: 16,
-      background: dark ? "#0f172a" : "#f8fafc",
-      borderRadius: 10,
+      minHeight: 260, display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", gap: 14,
+      background: "#0d1117", borderRadius: 10,
     }}>
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        style={{ fontSize: 36 }}
-      >
-        🎮
-      </motion.div>
-      <motion.div
-        key={idx}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0 }}
-        style={{ fontSize: 13, color: dark ? "#64748b" : "#94a3b8", fontFamily: "monospace" }}
-      >
-        {LOADING_PHRASES[idx]}
-      </motion.div>
+      <div style={{ fontSize: 40 }}>🎮</div>
+      <div style={{ fontSize: 13, color: "#64748b", fontFamily: "monospace" }}>
+        Compiling game{dots}
+      </div>
     </div>
   );
 }
 
-// ── Idle screen (no game yet) ────────────────────────────────────────────────
+// ── Idle screen ───────────────────────────────────────────────────────────────
 
-function IdleScreen({ dark }: { dark: boolean }) {
-  const games = ["⚔️ Pokemon battle", "♟ Chess", "🗡 Dungeon crawler", "🎲 Any game you can imagine"];
+function IdleScreen() {
+  const examples = [
+    '"Let\'s play Pokemon — I pick Bulbasaur"',
+    '"Play chess with me"',
+    '"Start a dungeon crawl"',
+    '"Let\'s play blackjack"',
+  ];
   return (
     <div style={{
-      minHeight: 220, display: "flex", flexDirection: "column",
+      minHeight: 260, display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", gap: 12,
-      background: dark ? "#0f172a" : "#f8fafc", borderRadius: 10, padding: 24,
+      background: "#0d1117", borderRadius: 10, padding: 24,
     }}>
       <div style={{ fontSize: 40 }}>🎮</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: dark ? "#e2e8f0" : "#1e293b" }}>
-        Ready to play
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>AI Game Engine</div>
+      <div style={{ fontSize: 12, color: "#64748b", textAlign: "center", maxWidth: 280 }}>
+        Claude writes a pixel-perfect game UI live in chat. Try:
       </div>
-      <div style={{ fontSize: 12, color: dark ? "#64748b" : "#94a3b8", textAlign: "center", maxWidth: 260 }}>
-        Ask Claude to start any game. For example:
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 5, width: "100%", maxWidth: 260 }}>
-        {games.map((g, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.08 }}
-            style={{ fontSize: 12, color: dark ? "#7c3aed" : "#6d28d9",
-              background: dark ? "#1e1035" : "#ede9fe",
-              borderRadius: 6, padding: "5px 10px", fontFamily: "monospace" }}
-          >
-            "{g}"
-          </motion.div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 5, width: "100%", maxWidth: 320 }}>
+        {examples.map((e, i) => (
+          <div key={i} style={{
+            fontSize: 11, color: "#a78bfa",
+            background: "#1e1035", borderRadius: 6,
+            padding: "5px 10px", fontFamily: "monospace",
+          }}>{e}</div>
         ))}
       </div>
     </div>
   );
 }
 
-// ── Game router ───────────────────────────────────────────────────────────────
+// ── Error screen ──────────────────────────────────────────────────────────────
 
-function unwrapState(gameState: GameState): GameState {
-  // Claude sometimes sends the full GameState wrapper as `initialState`,
-  // resulting in double-nesting: { gameType, state: { gameType, state: {...} } }
-  // Unwrap until we reach the actual inner state.
-  let current: any = gameState;
-  while (
-    current?.state &&
-    typeof current.state === "object" &&
-    !Array.isArray(current.state) &&
-    ("gameType" in current.state || "state" in current.state)
-  ) {
-    // If the inner object looks like a GameState wrapper, unwrap one level
-    if ("state" in current.state && typeof current.state.state === "object") {
-      current = { ...current, state: current.state.state, gameType: current.state.gameType ?? current.gameType };
-    } else {
-      break;
-    }
-  }
-  return current as GameState;
+function ErrorScreen({ message }: { message: string }) {
+  return (
+    <div style={{ padding: 16, color: "#f87171", fontFamily: "monospace", fontSize: 12, background: "#0f172a", borderRadius: 10 }}>
+      <div style={{ fontWeight: 600, marginBottom: 8 }}>❌ Game error</div>
+      <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{message}</pre>
+    </div>
+  );
 }
 
-function GameRouter({ gameState }: { gameState: GameState }) {
-  const resolved = unwrapState(gameState);
-  const { gameType, state, title } = resolved;
+// ── Game renderer ─────────────────────────────────────────────────────────────
 
-  switch (gameType) {
-    case "pokemon":
-      return <PokemonBattle state={state as any} title={title} />;
-    case "chess":
-      return <Chess state={state as any} title={title} />;
-    case "dungeon":
-      return <DungeonCrawler state={state as any} title={title} />;
-    default:
-      return <GenericGame state={state as any} title={title} />;
-  }
+interface GameModule {
+  renderGame: (container: HTMLElement, props: unknown, prevProps?: unknown) => void | Promise<void>;
+  cleanup?: (container: HTMLElement) => void;
+}
+
+function GameRenderer({ bundle, inputProps }: { bundle: string; inputProps: unknown }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const moduleRef = useRef<GameModule | null>(null);
+  const prevBundleRef = useRef<string | null>(null);
+  const prevPropsRef = useRef<unknown>(undefined);
+  const [error, setError] = useState<string | null>(null);
+
+  // Execute bundle when it changes
+  useEffect(() => {
+    if (!bundle || bundle === prevBundleRef.current) return;
+
+    // Cleanup previous game if there was one
+    if (moduleRef.current?.cleanup && containerRef.current) {
+      try { moduleRef.current.cleanup(containerRef.current); } catch {}
+    }
+
+    prevBundleRef.current = bundle;
+    prevPropsRef.current = undefined;
+    setError(null);
+
+    // Ensure packages are available
+    (window as any).__GAME_PACKAGES = { "pixi.js": PIXI, gsap };
+
+    // Execute CJS bundle with custom require
+    try {
+      const require = (id: string): unknown => (window as any).__GAME_PACKAGES?.[id] ?? {};
+      const mod = { exports: {} as any };
+      // eslint-disable-next-line no-new-func
+      new Function("require", "module", "exports", bundle)(require, mod, mod.exports);
+      const gameModule: GameModule = mod.exports;
+
+      if (typeof gameModule.renderGame !== "function") {
+        setError("Bundle does not export renderGame(). Make sure main.tsx exports renderGame.");
+        return;
+      }
+
+      moduleRef.current = gameModule;
+    } catch (err) {
+      setError(`Bundle execution error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [bundle]);
+
+  // Call renderGame when module or inputProps change
+  useEffect(() => {
+    const mod = moduleRef.current;
+    if (!mod || !containerRef.current || inputProps === undefined) return;
+
+    const prevProps = prevPropsRef.current;
+    prevPropsRef.current = inputProps;
+
+    try {
+      const result = mod.renderGame(containerRef.current, inputProps, prevProps);
+      if (result instanceof Promise) {
+        result.catch((err) => setError(`Render error: ${err instanceof Error ? err.message : String(err)}`));
+      }
+    } catch (err) {
+      setError(`Render error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  // Re-run when module loads or inputProps change (use JSON to detect value changes)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleRef.current, JSON.stringify(inputProps)]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (moduleRef.current?.cleanup && containerRef.current) {
+        try { moduleRef.current.cleanup(containerRef.current); } catch {}
+      }
+    };
+  }, []);
+
+  if (error) return <ErrorScreen message={error} />;
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        display: "block",
+        lineHeight: 0,
+        borderRadius: 8,
+        overflow: "hidden",
+      }}
+    />
+  );
 }
 
 // ── Inner widget ──────────────────────────────────────────────────────────────
 
 function GamePlayerInner() {
-  const { isPending, isStreaming, theme } = useWidget<z.infer<typeof propSchema>>();
+  const { isPending, isStreaming } = useWidget<z.infer<typeof propSchema>>();
   const { output } = useWidget<z.infer<typeof propSchema>>() as any;
 
-  const dark = theme === "dark";
   const isBusy = isPending || isStreaming;
 
-  const gameState = useMemo<GameState | null>(() => {
-    // Try multiple extraction paths — mcp-use may nest differently
-    const candidates: unknown[] = [
-      (output as any)?.gameState,
-      (output as any)?.props?.gameState,
-      typeof output === "string" ? output : null,
-    ];
-
-    for (const raw of candidates) {
-      if (typeof raw === "string" && raw.trim().startsWith("{")) {
-        try {
-          const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-            return parsed as GameState;
-          }
-        } catch {}
-      }
-      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-        return raw as GameState;
+  // Extract bundle and inputProps from output (try multiple paths for mcp-use compatibility)
+  const { bundle, inputPropsStr } = useMemo(() => {
+    const candidates = [output, output?.props, output?.output];
+    for (const c of candidates) {
+      if (c && typeof c === "object" && typeof c.bundle === "string") {
+        return { bundle: c.bundle as string, inputPropsStr: c.inputProps as string | undefined };
       }
     }
-    return null;
+    return { bundle: undefined, inputPropsStr: undefined };
   }, [output]);
 
-  if (!gameState && isBusy) return <LoadingScreen dark={dark} />;
-  if (!gameState) return <IdleScreen dark={dark} />;
+  const inputProps = useMemo(() => {
+    if (!inputPropsStr) return undefined;
+    try { return JSON.parse(inputPropsStr); } catch { return undefined; }
+  }, [inputPropsStr]);
 
-  return (
-    <motion.div
-      key={JSON.stringify({ type: gameState.gameType, title: gameState.title })}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-    >
-      <GameRouter gameState={gameState} />
-    </motion.div>
-  );
+  if (!bundle && isBusy) return <LoadingScreen />;
+  if (!bundle) return <IdleScreen />;
+
+  return <GameRenderer bundle={bundle} inputProps={inputProps} />;
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────

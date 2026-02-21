@@ -1,17 +1,10 @@
 {
-  "name": "remotion-mcp-app",
+  "name": "game-mcp-app",
   "type": "module",
-  "version": "2.0.0",
-  "description": "MCP App for playing AI-driven games in Claude's chat — turn-based battles, chess, dungeon crawlers, and any game you can describe.",
+  "version": "3.0.0",
+  "description": "MCP App — Claude generates pixel-perfect game UIs with Pixi.js, rendered live in chat.",
   "license": "MIT",
-  "keywords": [
-    "mcp",
-    "mcp-apps",
-    "mcp-use",
-    "game",
-    "react",
-    "animation"
-  ],
+  "keywords": ["mcp", "mcp-apps", "mcp-use", "game", "pixi", "gsap"],
   "main": "dist/index.js",
   "scripts": {
     "build": "NODE_OPTIONS='--max-old-space-size=8192' mcp-use build",
@@ -20,9 +13,11 @@
     "deploy": "mcp-use deploy"
   },
   "dependencies": {
-    "framer-motion": "^12.4.7",
+    "esbuild": "^0.25.0",
+    "gsap": "^3.12.5",
     "mcp-use": "^1.19.2-canary.2",
     "node-mocks-http": "^1.17.2",
+    "pixi.js": "^8.6.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router": "7",

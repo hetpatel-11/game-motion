@@ -1,28 +1,32 @@
 import { MCPServer, text } from "mcp-use/server";
 import { z } from "zod";
-import { RULE_GAME_STATE } from "./rules/game-state.js";
-import { rememberGame, getGame, gameWidget, gameError } from "./utils.js";
-import type { GameState } from "./types.js";
+import { RULE_GAME_ENGINE } from "./rules/game-engine.js";
+import { compileGameBundle, rememberGame, getGame, gameWidget, gameError } from "./utils.js";
+import type { SessionGame } from "./types.js";
 
 const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 const server = new MCPServer({
   name: "game-mcp",
   title: "AI Game Engine",
-  version: "3.0.0",
-  description: "Play any game against Claude — Pokemon battles, chess, dungeon crawlers, and anything you can imagine.",
+  version: "4.0.0",
+  description:
+    "Claude generates pixel-perfect game UIs with Pixi.js — Pokemon FireRed, chess, dungeon crawlers, any game. " +
+    "Write game code once, update state per turn with no recompile.",
   host: process.env.HOST ?? "0.0.0.0",
   baseUrl: process.env.MCP_URL ?? `http://localhost:${port}`,
 });
 
-// ── Rules ─────────────────────────────────────────────────────────────────────
+// ── read_me ───────────────────────────────────────────────────────────────────
 
 server.tool(
   {
     name: "read_me",
-    description: "IMPORTANT: Call this FIRST before starting any game. Returns game state format guide.",
+    description:
+      "CALL THIS FIRST before any game. Returns the complete guide for writing Pixi.js game compositions, " +
+      "exact Pokemon FireRed specs, chess board specs, animation patterns, and the inputProps contract.",
   },
-  async () => text(RULE_GAME_STATE)
+  async () => text(RULE_GAME_ENGINE)
 );
 
 // ── start_game ────────────────────────────────────────────────────────────────
@@ -31,49 +35,71 @@ server.tool(
   {
     name: "start_game",
     description:
-      "Start a new game session. Call read_me first for the game state format. " +
-      "Supported gameType values: 'pokemon', 'chess', 'dungeon', 'generic'. " +
-      "The widget renders immediately — no code to write, just supply game state JSON.",
+      "Compile and launch a new game. You write a complete Pixi.js game as TypeScript files, " +
+      "which are compiled server-side and sent to the browser widget for rendering. " +
+      "REQUIRED: files must include 'main.tsx' exporting renderGame() and optionally cleanup(). " +
+      "After this call, use update_game_state to advance the game — no recompile needed.",
     schema: z.object({
-      gameType: z
-        .enum(["pokemon", "chess", "dungeon", "generic"])
-        .describe("Type of game to render"),
-      title: z.string().optional().describe("Display title for the game"),
+      title: z.string().describe("Display title for the game, e.g. 'Pokemon FireRed Battle'"),
+      files: z
+        .record(z.string(), z.string())
+        .describe(
+          "Object mapping filename to file content. MUST include 'main.tsx' as entry point. " +
+          "Example: { 'main.tsx': '...', 'types.ts': '...' }"
+        ),
       initialState: z
         .string()
-        .describe("JSON string of the initial game state. See read_me for the exact shape per game type."),
+        .describe(
+          "JSON string of the initial game state — must match the props interface in your main.tsx. " +
+          "This is passed as inputProps to renderGame() on first render."
+        ),
     }) as any,
     widget: {
       name: "game-player",
-      invoking: "Setting up game…",
+      invoking: "Compiling game…",
       invoked: "Game ready",
     },
   },
   async (
-    { gameType, title, initialState }: { gameType: "pokemon" | "chess" | "dungeon" | "generic"; title?: string; initialState: string },
+    { title, files, initialState }: { title: string; files: Record<string, string>; initialState: string },
     ctx: any
   ) => {
     const sessionId: string = ctx.session?.sessionId ?? "default";
 
-    let parsedState: Record<string, unknown>;
+    // Parse initial state
+    let inputProps: Record<string, unknown>;
     try {
-      parsedState = JSON.parse(initialState);
-      if (!parsedState || typeof parsedState !== "object" || Array.isArray(parsedState)) {
+      inputProps = JSON.parse(initialState);
+      if (!inputProps || typeof inputProps !== "object" || Array.isArray(inputProps)) {
         return gameError("initialState must be a JSON object.");
       }
     } catch {
       return gameError("initialState must be valid JSON.");
     }
 
-    const gameState: GameState = {
-      gameType: gameType as any,
-      title: title ?? gameType,
-      state: parsedState as any,
+    // Validate files
+    if (!files || typeof files !== "object") {
+      return gameError("files must be a record of filename → content.");
+    }
+    if (!files["main.tsx"] && !files["main.ts"]) {
+      return gameError("files must include 'main.tsx' or 'main.ts' as the entry point.");
+    }
+
+    // Compile
+    const compiled = await compileGameBundle(files);
+    if (compiled.error) {
+      return gameError(`Compilation failed:\n${compiled.error}`);
+    }
+
+    const game: SessionGame = {
+      bundle: compiled.bundle as string,
+      inputProps,
+      title,
     };
 
-    rememberGame(sessionId, gameState);
+    rememberGame(sessionId, game);
 
-    return gameWidget(gameState, `${gameState.title} started. Good luck!`);
+    return gameWidget(game, `${title} started! Good luck.`);
   }
 );
 
@@ -83,14 +109,15 @@ server.tool(
   {
     name: "update_game_state",
     description:
-      "Update the game state after every turn. " +
-      "Pass the complete updated state JSON — not just the changed fields. " +
-      "The widget re-renders instantly with animations. " +
-      "Call this for BOTH the player's move result AND the CPU counter-move.",
+      "Update the game state after each turn. The existing compiled bundle is reused — only inputProps change. " +
+      "Call this for BOTH the player's move result AND the CPU counter-move (two separate calls per turn). " +
+      "Pass the COMPLETE updated state JSON, not just changed fields.",
     schema: z.object({
       state: z
         .string()
-        .describe("JSON string of the FULL updated game state (same shape as initialState)"),
+        .describe(
+          "JSON string of the complete updated game state. Must match the props interface in main.tsx."
+        ),
     }) as any,
     widget: {
       name: "game-player",
@@ -106,19 +133,19 @@ server.tool(
       return gameError("No active game. Call start_game first.");
     }
 
-    let parsedState: Record<string, unknown>;
+    let inputProps: Record<string, unknown>;
     try {
-      parsedState = JSON.parse(state);
-      if (!parsedState || typeof parsedState !== "object" || Array.isArray(parsedState)) {
+      inputProps = JSON.parse(state);
+      if (!inputProps || typeof inputProps !== "object" || Array.isArray(inputProps)) {
         return gameError("state must be a JSON object.");
       }
     } catch {
       return gameError("state must be valid JSON.");
     }
 
-    const updated: GameState = {
+    const updated: SessionGame = {
       ...previous,
-      state: parsedState as any,
+      inputProps,
     };
 
     rememberGame(sessionId, updated);
@@ -131,21 +158,26 @@ server.tool(
 server.tool(
   {
     name: "list_games",
-    description: "List available game types and their descriptions.",
+    description: "List game ideas and examples to help the user pick a game.",
   },
   async () =>
-    text(`Available game types:
+    text(`AI Game Engine — powered by Pixi.js + GSAP
 
-pokemon  — Turn-based Pokemon-style battle. Two fighters, HP bars, type effectiveness, moves.
-chess    — Full chess game with an 8×8 animated board. You play white, Claude plays black.
-dungeon  — Dungeon crawler RPG. Explore rooms, fight enemies, collect loot, level up.
-generic  — Any other game. Supports emoji scene, key/value fields, actions list, and dialog.
+Claude writes your game UI from scratch — pixel-perfect, animated, real.
 
-Start any game by saying e.g.:
-  "Let's play a Pokemon battle — I pick Pikachu vs Gengar"
-  "Play chess with me"
-  "Start a dungeon crawl"
-  "Let's play tic-tac-toe" (uses generic type)`)
+FEATURED GAMES:
+  🎮 Pokemon FireRed battle  — Exact GBA-style HP bars, animated sprites, type effectiveness
+  ♟  Chess                   — Lichess-style board, animated moves, check/checkmate detection
+  ⚔️  Dungeon crawler         — Turn-based RPG, rooms, enemies, loot, leveling
+  🃏  Blackjack               — Casino-style card game, bet, hit, stand, bust
+  ❌  Tic-tac-toe             — Classic, win detection, CPU strategy
+  🚀  Space invaders          — Scrolling enemies, shoot, score
+  🌊  Battleship              — Grid hit/miss, fleet placement
+  🐍  Snake                  — Classic snake on a grid
+
+ANY game you can describe — Claude builds the UI live.
+
+Try: "Let's play Pokemon — I pick Bulbasaur vs Charmander"`)
 );
 
 // ── Server ────────────────────────────────────────────────────────────────────
