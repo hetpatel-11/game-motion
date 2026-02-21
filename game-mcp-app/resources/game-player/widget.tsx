@@ -9,7 +9,6 @@ import gsap from "gsap";
 const propSchema = z.object({
   bundle: z.string().optional().describe("Compiled CJS game bundle string"),
   inputProps: z.string().optional().describe("JSON-encoded game state passed to renderGame()"),
-  serverUrl: z.string().optional().describe("MCP server base URL for sprite proxy"),
 });
 
 export const widgetMetadata: WidgetMetadata = {
@@ -154,98 +153,89 @@ interface GameModule {
   cleanup?: (container: HTMLElement) => void;
 }
 
-function GameRenderer({ bundle, inputProps, serverUrl }: { bundle: string; inputProps: unknown; serverUrl?: string }) {
+function GameRenderer({ bundle, inputProps }: { bundle: string; inputProps: unknown }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const moduleRef = useRef<GameModule | null>(null);
   const prevBundleRef = useRef<string | null>(null);
   const prevPropsRef = useRef<unknown>(undefined);
-  const [gameModule, setGameModule] = useState<GameModule | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Execute bundle when it changes → produces a new gameModule via setState
+  // Execute bundle when it changes
   useEffect(() => {
     if (!bundle || bundle === prevBundleRef.current) return;
 
-    // Cleanup previous game
-    if (gameModule?.cleanup && containerRef.current) {
-      try { gameModule.cleanup(containerRef.current); } catch {}
+    // Cleanup previous game if there was one
+    if (moduleRef.current?.cleanup && containerRef.current) {
+      try { moduleRef.current.cleanup(containerRef.current); } catch {}
     }
 
     prevBundleRef.current = bundle;
     prevPropsRef.current = undefined;
     setError(null);
-    setGameModule(null);
 
-    // Inject packages — BASE_URL lets game code reach the sprite proxy
-    // regardless of the sandbox origin the widget runs in.
-    (window as any).__GAME_PACKAGES = { "pixi.js": PIXI, gsap, BASE_URL: serverUrl ?? "" };
+    // Ensure packages are available
+    (window as any).__GAME_PACKAGES = { "pixi.js": PIXI, gsap };
 
+    // Execute CJS bundle with custom require
     try {
       const require = (id: string): unknown => (window as any).__GAME_PACKAGES?.[id] ?? {};
       const mod = { exports: {} as any };
       // eslint-disable-next-line no-new-func
       new Function("require", "module", "exports", bundle)(require, mod, mod.exports);
-      const gm: GameModule = mod.exports;
+      const gameModule: GameModule = mod.exports;
 
-      if (typeof gm.renderGame !== "function") {
+      if (typeof gameModule.renderGame !== "function") {
         setError("Bundle does not export renderGame(). Make sure main.tsx exports renderGame.");
         return;
       }
-      setGameModule(gm); // ← triggers re-render, then the effect below calls renderGame
+
+      moduleRef.current = gameModule;
     } catch (err) {
       setError(`Bundle execution error: ${err instanceof Error ? err.message : String(err)}`);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bundle]);
 
-  // Call renderGame when gameModule becomes available OR inputProps change
+  // Call renderGame when module or inputProps change
   useEffect(() => {
-    if (!gameModule || !containerRef.current) return;
+    const mod = moduleRef.current;
+    if (!mod || !containerRef.current || inputProps === undefined) return;
 
-    const props = inputProps ?? {};  // never block on undefined inputProps
     const prevProps = prevPropsRef.current;
-    prevPropsRef.current = props;
+    prevPropsRef.current = inputProps;
 
     try {
-      const result = gameModule.renderGame(containerRef.current, props, prevProps);
+      const result = mod.renderGame(containerRef.current, inputProps, prevProps);
       if (result instanceof Promise) {
         result.catch((err) => setError(`Render error: ${err instanceof Error ? err.message : String(err)}`));
       }
     } catch (err) {
       setError(`Render error: ${err instanceof Error ? err.message : String(err)}`);
     }
+  // Re-run when module loads or inputProps change (use JSON to detect value changes)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameModule, JSON.stringify(inputProps)]);
+  }, [moduleRef.current, JSON.stringify(inputProps)]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (gameModule?.cleanup && containerRef.current) {
-        try { gameModule.cleanup(containerRef.current); } catch {}
+      if (moduleRef.current?.cleanup && containerRef.current) {
+        try { moduleRef.current.cleanup(containerRef.current); } catch {}
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameModule]);
+  }, []);
 
   if (error) return <ErrorScreen message={error} />;
 
   return (
-    <div style={{ position: "relative", minHeight: 320 }}>
-      {/* Placeholder shown while Pixi canvas is initialising */}
-      {!gameModule && (
-        <div style={{
-          position: "absolute", inset: 0, display: "flex",
-          alignItems: "center", justifyContent: "center",
-          background: "#0d1117", borderRadius: 8,
-          color: "#475569", fontFamily: "monospace", fontSize: 13,
-        }}>
-          Loading game…
-        </div>
-      )}
-      <div
-        ref={containerRef}
-        style={{ display: "block", lineHeight: 0, borderRadius: 8, overflow: "hidden" }}
-      />
-    </div>
+    <div
+      ref={containerRef}
+      style={{
+        display: "block",
+        lineHeight: 0,
+        borderRadius: 8,
+        overflow: "hidden",
+      }}
+    />
   );
 }
 
@@ -273,19 +263,10 @@ function GamePlayerInner() {
     try { return JSON.parse(inputPropsStr); } catch { return undefined; }
   }, [inputPropsStr]);
 
-  // Extract serverUrl from output
-  const serverUrl = useMemo(() => {
-    const candidates = [output, output?.props, output?.output];
-    for (const c of candidates) {
-      if (c && typeof c === "object" && typeof c.serverUrl === "string") return c.serverUrl as string;
-    }
-    return undefined;
-  }, [output]);
-
   if (!bundle && isBusy) return <LoadingScreen />;
   if (!bundle) return <IdleScreen />;
 
-  return <GameRenderer bundle={bundle} inputProps={inputProps} serverUrl={serverUrl} />;
+  return <GameRenderer bundle={bundle} inputProps={inputProps} />;
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────
