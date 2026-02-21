@@ -98,9 +98,9 @@ const propSchema = z.object({
     .describe("JSON with bundled project code, composition metadata, defaultProps and inputProps"),
 });
 
-// @ts-expect-error - Zod v4 deep type instantiation
 export const widgetMetadata: WidgetMetadata = {
   description: "Remotion video player",
+  // @ts-ignore - Zod v4 deep type instantiation incompatibility between mcp-use's bundled zod and project zod
   props: propSchema,
   exposeAsTool: false,
   metadata: {
