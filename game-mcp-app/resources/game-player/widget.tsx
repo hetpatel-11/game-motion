@@ -115,10 +115,33 @@ function IdleScreen() {
 // ── Error screen ──────────────────────────────────────────────────────────────
 
 function ErrorScreen({ message }: { message: string }) {
+  const [copied, setCopied] = React.useState(false);
+  const prompt = `The game crashed with this error — please fix and call start_game again:\n\n${message}`;
+
+  function copy() {
+    navigator.clipboard?.writeText(prompt).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
-    <div style={{ padding: 16, color: "#f87171", fontFamily: "monospace", fontSize: 12, background: "#0f172a", borderRadius: 10 }}>
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>❌ Game error</div>
-      <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{message}</pre>
+    <div style={{ padding: 16, fontFamily: "monospace", fontSize: 12, background: "#0f172a", borderRadius: 10, border: "1px solid #f8717140" }}>
+      <div style={{ fontWeight: 700, marginBottom: 8, color: "#f87171", fontSize: 13 }}>❌ Game render error</div>
+      <pre style={{ whiteSpace: "pre-wrap", margin: "0 0 12px", color: "#fca5a5", fontSize: 11, background: "#1e0a0a", padding: 10, borderRadius: 6, overflow: "auto", maxHeight: 160 }}>{message}</pre>
+      <div style={{ color: "#94a3b8", fontSize: 11, marginBottom: 8 }}>
+        👇 Click to copy the fix prompt, then paste it into the chat:
+      </div>
+      <button
+        onClick={copy}
+        style={{
+          padding: "7px 14px", borderRadius: 6, border: "none", cursor: "pointer",
+          background: copied ? "#166534" : "#7c3aed", color: "#fff", fontSize: 12, fontWeight: 600,
+          fontFamily: "monospace", transition: "background 0.2s",
+        }}
+      >
+        {copied ? "✓ Copied!" : "📋 Copy fix prompt"}
+      </button>
     </div>
   );
 }
