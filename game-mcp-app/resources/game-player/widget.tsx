@@ -199,13 +199,14 @@ function GameRenderer({ bundle, inputProps, serverUrl }: { bundle: string; input
 
   // Call renderGame when gameModule becomes available OR inputProps change
   useEffect(() => {
-    if (!gameModule || !containerRef.current || inputProps === undefined) return;
+    if (!gameModule || !containerRef.current) return;
 
+    const props = inputProps ?? {};  // never block on undefined inputProps
     const prevProps = prevPropsRef.current;
-    prevPropsRef.current = inputProps;
+    prevPropsRef.current = props;
 
     try {
-      const result = gameModule.renderGame(containerRef.current, inputProps, prevProps);
+      const result = gameModule.renderGame(containerRef.current, props, prevProps);
       if (result instanceof Promise) {
         result.catch((err) => setError(`Render error: ${err instanceof Error ? err.message : String(err)}`));
       }
@@ -228,10 +229,23 @@ function GameRenderer({ bundle, inputProps, serverUrl }: { bundle: string; input
   if (error) return <ErrorScreen message={error} />;
 
   return (
-    <div
-      ref={containerRef}
-      style={{ display: "block", lineHeight: 0, borderRadius: 8, overflow: "hidden" }}
-    />
+    <div style={{ position: "relative", minHeight: 320 }}>
+      {/* Placeholder shown while Pixi canvas is initialising */}
+      {!gameModule && (
+        <div style={{
+          position: "absolute", inset: 0, display: "flex",
+          alignItems: "center", justifyContent: "center",
+          background: "#0d1117", borderRadius: 8,
+          color: "#475569", fontFamily: "monospace", fontSize: 13,
+        }}>
+          Loading game…
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        style={{ display: "block", lineHeight: 0, borderRadius: 8, overflow: "hidden" }}
+      />
+    </div>
   );
 }
 
