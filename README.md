@@ -1,7 +1,7 @@
 # Game Motion
 
 <p align="center">
-  <img src="Screenshot 2026-02-21 at 5.30.11 PM.png" alt="ZORK in ChatGPT — retro games widget" width="100%"/>
+  <img src="Screenshot 2026-02-21 at 5.30.11 PM.png" alt="ZORK in ChatGPT — retro games widget" width="100%"/>
 </p>
 
 **Three MCP apps for games and learning — build custom games, play classics in chat, or turn complex topics into interactive, gamified explanations.**
