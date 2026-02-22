@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.mcp-use/
+*.z5
+*.z8
+__pycache__/
+*.pyc
+.venv/

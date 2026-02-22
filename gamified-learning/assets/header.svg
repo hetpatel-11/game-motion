@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 320" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="900" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#1a1025"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="accent2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="widget-clip">
+      <rect x="470" y="52" width="400" height="236" rx="12"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="320" rx="16" fill="url(#bg)"/>
+
+  <!-- Subtle grid pattern -->
+  <g opacity="0.04">
+    <line x1="0" y1="40" x2="900" y2="40" stroke="white" stroke-width="0.5"/>
+    <line x1="0" y1="80" x2="900" y2="80" stroke="white" stroke-width="0.5"/>
+    <line x1="0" y1="120" x2="900" y2="120" stroke="white" stroke-width="0.5"/>
+    <line x1="0" y1="160" x2="900" y2="160" stroke="white" stroke-width="0.5"/>
+    <line x1="0" y1="200" x2="900" y2="200" stroke="white" stroke-width="0.5"/>
+    <line x1="0" y1="240" x2="900" y2="240" stroke="white" stroke-width="0.5"/>
+    <line x1="0" y1="280" x2="900" y2="280" stroke="white" stroke-width="0.5"/>
+  </g>
+
+  <!-- Left side: Chat message bubble -->
+  <g transform="translate(30, 52)">
+    <!-- User message -->
+    <rect x="0" y="0" width="260" height="44" rx="10" fill="#1e1e2e" stroke="#333" stroke-width="0.5"/>
+    <circle cx="20" cy="22" r="10" fill="url(#accent)" opacity="0.8"/>
+    <text x="38" y="27" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" fill="#e0e0e0" font-weight="500">Create a video about space</text>
+
+    <!-- AI response -->
+    <rect x="0" y="56" width="260" height="36" rx="10" fill="#161622" stroke="#2a2a3a" stroke-width="0.5"/>
+    <text x="14" y="79" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#888">
+      <tspan fill="#7c3aed">create_video</tspan>
+      <tspan fill="#555"> called</tspan>
+    </text>
+
+    <!-- Tool call indicator -->
+    <rect x="0" y="104" width="260" height="36" rx="10" fill="#161622" stroke="#2a2a3a" stroke-width="0.5">
+      <animate attributeName="stroke" values="#2a2a3a;#7c3aed;#2a2a3a" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <circle cx="16" cy="122" r="4" fill="#7c3aed">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <text x="28" y="127" font-family="ui-monospace, monospace" font-size="10" fill="#7c3aed" opacity="0.9">Compiling project...</text>
+
+    <!-- Animated dots -->
+    <g transform="translate(175, 118)">
+      <circle cx="0" cy="4" r="2" fill="#06b6d4" opacity="0.3">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" begin="0s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="10" cy="4" r="2" fill="#06b6d4" opacity="0.3">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" begin="0.2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="20" cy="4" r="2" fill="#06b6d4" opacity="0.3">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" begin="0.4s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+  </g>
+
+  <!-- Center divider -->
+  <line x1="440" y1="70" x2="440" y2="270" stroke="url(#accent)" stroke-width="1" opacity="0.15"/>
+
+  <!-- Right side: Widget preview -->
+  <g clip-path="url(#widget-clip)">
+    <!-- Widget background -->
+    <rect x="470" y="52" width="400" height="236" rx="12" fill="#0c0c0c"/>
+
+    <!-- Video content area -->
+    <rect x="470" y="52" width="400" height="200" fill="#0a0a0a"/>
+
+    <!-- Animated gradient background in video -->
+    <rect x="470" y="52" width="400" height="200" fill="#0f0520" opacity="0.6">
+      <animate attributeName="opacity" values="0.4;0.7;0.4" dur="4s" repeatCount="indefinite"/>
+    </rect>
+
+    <!-- Video content: title text -->
+    <text x="670" y="130" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="white" font-weight="800" text-anchor="middle" opacity="0.95">
+      Journey to Space
+    </text>
+    <rect x="630" y="142" width="80" height="2" rx="1" fill="url(#accent2)" opacity="0.8">
+      <animate attributeName="width" values="0;80;80" dur="2s" fill="freeze"/>
+    </rect>
+    <text x="670" y="165" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#999" text-anchor="middle">
+      A visual exploration
+    </text>
+
+    <!-- Play button overlay -->
+    <g transform="translate(652, 185)" opacity="0.7">
+      <circle cx="18" cy="12" r="14" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      <polygon points="14,5 14,19 25,12" fill="white" opacity="0.9"/>
+    </g>
+
+    <!-- Player controls bar -->
+    <rect x="470" y="252" width="400" height="36" fill="#141414"/>
+    <!-- Progress bar -->
+    <rect x="486" y="266" width="368" height="3" rx="1.5" fill="#222"/>
+    <rect x="486" y="266" width="180" height="3" rx="1.5" fill="url(#accent)" opacity="0.8">
+      <animate attributeName="width" values="0;220;180" dur="3s" repeatCount="indefinite"/>
+    </rect>
+    <circle r="5" fill="white" cy="267.5" opacity="0.9">
+      <animate attributeName="cx" values="486;706;666" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Widget border -->
+  <rect x="470" y="52" width="400" height="236" rx="12" fill="none" stroke="#2a2a3a" stroke-width="1"/>
+
+  <!-- Title -->
+  <text x="450" y="310" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#555" text-anchor="middle" letter-spacing="0.5">
+    Remotion MCP  --  AI-powered video creation through conversation
+  </text>
+</svg>
