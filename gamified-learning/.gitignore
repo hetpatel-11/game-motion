@@ -1,0 +1,7 @@
+node_modules
+dist
+.mcp-use
+.env
+*.log
+package-lock.json
+*.png

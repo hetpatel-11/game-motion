@@ -98,9 +98,10 @@ const propSchema = z.object({
     .describe("JSON with bundled project code, composition metadata, defaultProps and inputProps"),
 });
 
+// @ts-expect-error - Zod v4 deep type instantiation
 export const widgetMetadata: WidgetMetadata = {
   description: "Remotion video player",
-  props: propSchema as any,
+  props: propSchema,
   exposeAsTool: false,
   metadata: {
     prefersBorder: true,
@@ -184,13 +185,24 @@ function readMetadataOverrides(overrides: Record<string, unknown>, fallback: Vid
 // ---------------------------------------------------------------------------
 
 const LOADING_WORDS = [
-  "Storyboarding", "Keyframing", "Colorgrading", "Montaging", "Clipjuggling",
-  "Renderwrangling", "Timeline-taming", "Scene-stitching", "Framebuffing",
-  "Beziering", "Rotoscoping", "Whooshing", "Boom-micing", "Greenscreening",
-  "Lensfiddling", "Foleying", "Pixel-peeping", "Shot-sweetening",
-  "Captionifying", "Transition-wizarding", "Slo-moing", "B-rolling",
-  "Audio-polishing", "Stabilizing", "Export-spelunking",
-  "Render-re-rendering", "Compiling-and-smiling", "Cinema-cooking",
+  "Storyboarding scenes",
+  "Keyframing motion",
+  "Color grading",
+  "Stitching sequences",
+  "Rendering frames",
+  "Taming the timeline",
+  "Crafting transitions",
+  "Bezier curving",
+  "Pixel polishing",
+  "Building cinematics",
+  "Compositing layers",
+  "Animating typography",
+  "Sweetening cuts",
+  "Dialing in spring physics",
+  "Choreographing entrances",
+  "Interpolating smoothly",
+  "Easing into position",
+  "Cooking the render",
 ];
 
 function useLoadingWord(active: boolean) {
@@ -260,64 +272,133 @@ function LoadingView({
   fullscreen: boolean;
   onExitFullscreen?: () => void;
 }) {
-  const height = fullscreen ? "100vh" : 260;
+  const height = fullscreen ? "100vh" : 280;
   return (
     <div
       style={{
         position: "relative",
         height,
-        minHeight: 260,
-        borderRadius: fullscreen ? 0 : 8,
+        minHeight: 280,
+        borderRadius: fullscreen ? 0 : 12,
         overflow: "hidden",
-        fontFamily: "system-ui, sans-serif",
+        fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      <ShaderBackground style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+      {/* Deep dark base */}
+      <div style={{ position: "absolute", inset: 0, background: "#080810" }} />
+      {/* Shader on top */}
+      <ShaderBackground style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.6 }} />
+      {/* Scanline overlay for cinematic texture */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)",
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      />
+
       {fullscreen && onExitFullscreen && (
-        <div style={{ position: "absolute", top: 10, right: 10, zIndex: 2 }}>
+        <div style={{ position: "absolute", top: 14, right: 14, zIndex: 10 }}>
           <button
             onClick={onExitFullscreen}
             style={{
-              background: "rgba(255,255,255,0.08)",
-              border: "none",
+              background: "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.12)",
               cursor: "pointer",
-              padding: "7px 10px",
-              color: "#f4f4f4",
+              padding: "6px 12px",
+              color: "rgba(255,255,255,0.7)",
               borderRadius: 6,
               fontSize: 11,
-              fontWeight: 600,
+              fontWeight: 500,
+              letterSpacing: 0.3,
+              backdropFilter: "blur(8px)",
             }}
           >
             Exit fullscreen
           </button>
         </div>
       )}
+
       <div
         style={{
           position: "relative",
-          zIndex: 1,
+          zIndex: 2,
           height: "100%",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          color: dark ? "#ffffff" : "#000000",
+          gap: 20,
           textAlign: "center",
-          padding: 24,
+          padding: 32,
         }}
       >
-        <span
-          style={{
-            fontSize: 16,
-            fontWeight: 500,
-            letterSpacing: 0.35,
-            lineHeight: 1,
-            opacity: visible ? 0.95 : 0,
-            transform: visible ? "translateY(0px) scale(1)" : "translateY(8px) scale(0.985)",
-            transition: "opacity 120ms ease, transform 120ms ease",
-          }}
+        {/* Film reel icon */}
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="rgba(255,255,255,0.35)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ opacity: visible ? 0.9 : 0.3, transition: "opacity 300ms ease" }}
         >
-          {word}
-        </span>
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="3" />
+          <line x1="12" y1="2" x2="12" y2="9" />
+          <line x1="12" y1="15" x2="12" y2="22" />
+          <line x1="2" y1="12" x2="9" y2="12" />
+          <line x1="15" y1="12" x2="22" y2="12" />
+        </svg>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center" }}>
+          <span
+            style={{
+              fontSize: 15,
+              fontWeight: 500,
+              letterSpacing: 0.5,
+              color: "rgba(255,255,255,0.9)",
+              opacity: visible ? 1 : 0,
+              transform: visible ? "translateY(0px)" : "translateY(6px)",
+              transition: "opacity 180ms ease, transform 180ms ease",
+              textShadow: "0 0 20px rgba(147,100,255,0.5)",
+            }}
+          >
+            {word}
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 400,
+              letterSpacing: 1.5,
+              color: "rgba(255,255,255,0.3)",
+              textTransform: "uppercase",
+            }}
+          >
+            Remotion
+          </span>
+        </div>
+
+        {/* Progress dots */}
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              style={{
+                width: 4,
+                height: 4,
+                borderRadius: "50%",
+                background: "rgba(147,100,255,0.8)",
+                opacity: visible ? 0.9 : 0.2,
+                transition: `opacity ${120 + i * 80}ms ease`,
+              }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -366,24 +447,64 @@ function HeaderBar({
   isAvailable: boolean;
   onToggleFullscreen: () => void;
 }) {
-  const fg = dark ? "#e0e0e0" : "#1a1a1a";
-  const fg2 = dark ? "#777" : "#888";
+  const bg = dark ? "rgba(12,12,18,0.95)" : "rgba(255,255,255,0.95)";
+  const borderColor = dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
+  const titleColor = dark ? "rgba(255,255,255,0.88)" : "rgba(0,0,0,0.82)";
+  const dotColor = dark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.14)";
+  const btnColor = dark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)";
 
   const fsIcon = isFullscreen ? (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="6 2 6 6 2 6" /><polyline points="10 14 10 10 14 10" />
       <line x1="2" y1="2" x2="6" y2="6" /><line x1="14" y1="14" x2="10" y2="10" />
     </svg>
   ) : (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="10 2 14 2 14 6" /><polyline points="6 14 2 14 2 10" />
       <line x1="14" y1="2" x2="10" y2="6" /><line x1="2" y1="14" x2="6" y2="10" />
     </svg>
   );
 
   return (
-    <div style={{ padding: "6px 10px 6px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-      <span style={{ color: fg, fontSize: 13, fontWeight: 500 }}>{title}</span>
+    <div
+      style={{
+        padding: "8px 10px 8px 14px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexShrink: 0,
+        background: bg,
+        borderBottom: `1px solid ${borderColor}`,
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        {/* Traffic-light-style indicators */}
+        <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+          {["#FF5F57", "#FEBC2E", "#28C840"].map((c, i) => (
+            <div
+              key={i}
+              style={{ width: 8, height: 8, borderRadius: "50%", background: dark ? dotColor : c, opacity: dark ? 1 : 0.7 }}
+            />
+          ))}
+        </div>
+        <span
+          style={{
+            color: titleColor,
+            fontSize: 12,
+            fontWeight: 500,
+            letterSpacing: 0.2,
+            fontFamily: "'Inter', system-ui, sans-serif",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {title}
+        </span>
+      </div>
+
       <button
         onClick={onToggleFullscreen}
         disabled={!isAvailable}
@@ -392,13 +513,15 @@ function HeaderBar({
           background: "none",
           border: "none",
           cursor: isAvailable ? "pointer" : "not-allowed",
-          padding: 6,
+          padding: "4px 6px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: fg2,
+          color: btnColor,
           borderRadius: 4,
-          opacity: isAvailable ? 0.7 : 0.35,
+          opacity: isAvailable ? 1 : 0.3,
+          flexShrink: 0,
+          transition: "opacity 150ms ease",
         }}
       >
         {fsIcon}
@@ -713,7 +836,17 @@ function RemotionPlayerWidgetInner() {
   }
 
   return (
-    <div style={{ borderRadius: 8, overflow: "hidden", background: bg, fontFamily: "system-ui, sans-serif" }}>
+    <div
+      style={{
+        borderRadius: 12,
+        overflow: "hidden",
+        background: dark ? "#0c0c12" : "#ffffff",
+        fontFamily: "'Inter', system-ui, sans-serif",
+        boxShadow: dark
+          ? "0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.5)"
+          : "0 0 0 1px rgba(0,0,0,0.06), 0 4px 24px rgba(0,0,0,0.08)",
+      }}
+    >
       <HeaderBar title={meta.title} dark={dark} isFullscreen={false} isAvailable={isAvailable} onToggleFullscreen={toggleFullscreen} />
       {playerEl}
     </div>

@@ -1,0 +1,3 @@
+jericho
+flask
+spacy

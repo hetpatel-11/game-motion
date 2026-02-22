@@ -2,11 +2,11 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY remotion-mcp-app/package*.json ./
+COPY game-mcp-app/package*.json ./
 
 RUN npm install
 
-COPY remotion-mcp-app/ ./
+COPY game-mcp-app/ ./
 
 RUN npm run build
 

@@ -340,7 +340,6 @@ export type SessionProjectState = {
   files: Record<string, string>;
   defaultProps: Record<string, unknown>;
   inputProps: Record<string, unknown>;
-  bundle?: string;
 };
 
 export type ProjectVideoInput = {
@@ -481,16 +480,6 @@ export async function compileAndRespondWithProject(
     }
   }
 
-  let bundle: string;
-  try {
-    bundle = await compileProjectBundle(files, entryFile);
-  } catch (error) {
-    return failProject(`Project compilation error: ${(error as Error).message}`, meta, {
-      defaultProps,
-      inputProps,
-    });
-  }
-
   const currentState: SessionProjectState = {
     title,
     compositionId,
@@ -502,9 +491,18 @@ export async function compileAndRespondWithProject(
     files: cloneFileMap(files),
     defaultProps: cloneRecord(defaultProps),
     inputProps: cloneRecord(inputProps),
-    bundle,
   };
   rememberSessionProject(sessionId, currentState);
+
+  let bundle: string;
+  try {
+    bundle = await compileProjectBundle(files, entryFile);
+  } catch (error) {
+    return failProject(`Project compilation error: ${(error as Error).message}`, meta, {
+      defaultProps,
+      inputProps,
+    });
+  }
 
   const projectData: VideoProjectData = buildProjectData(meta, {
     bundle,
@@ -528,45 +526,5 @@ export async function compileAndRespondWithProject(
         .filter((line) => line.trim().length > 0)
         .join("\n")
     ),
-  });
-}
-
-export async function updatePropsAndRespond(
-  sessionId: string,
-  newInputProps: Record<string, unknown>
-) {
-  const previous = getSessionProject(sessionId);
-  if (!previous) {
-    return failProject("No active game session. Call start_game first.");
-  }
-  if (!previous.bundle) {
-    return failProject("No compiled bundle found in session. Call start_game first.");
-  }
-
-  const updated: SessionProjectState = {
-    ...previous,
-    inputProps: newInputProps,
-  };
-  rememberSessionProject(sessionId, updated);
-
-  const projectData: VideoProjectData = buildProjectData(
-    {
-      title: updated.title,
-      compositionId: updated.compositionId,
-      width: updated.width,
-      height: updated.height,
-      fps: updated.fps,
-      durationInFrames: updated.durationInFrames,
-    },
-    {
-      bundle: previous.bundle,
-      defaultProps: updated.defaultProps,
-      inputProps: updated.inputProps,
-    }
-  );
-
-  return widget({
-    props: { videoProject: JSON.stringify(projectData) },
-    output: text("Game state updated."),
   });
 }
